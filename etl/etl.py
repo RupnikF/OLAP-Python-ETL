@@ -188,6 +188,7 @@ def year_etl(config):
                             for iso_country in iso_countries:
                                 if not iso_countries[iso_country]:
                                     continue
+                                last_year_deaths = None
                                 for year in iso_countries[iso_country]:
                                     gdp = iso_countries[iso_country][year]['gdp']
                                     health = None
@@ -196,6 +197,9 @@ def year_etl(config):
                                     deaths = None
                                     if 'deaths' in iso_countries[iso_country][year].keys():
                                         deaths = iso_countries[iso_country][year]['deaths']
+                                        last_year_deaths = deaths
+                                    else:
+                                        deaths = last_year_deaths
                                     cur.execute(insertYearly, (gdp, health, deaths, iso_country, int(year)))
                                     conn.commit()
 
