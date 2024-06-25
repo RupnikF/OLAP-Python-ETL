@@ -67,14 +67,14 @@ infections_policy_por_mes AS(
     FROM time NATURAL JOIN daily_data NATURAL JOIN country NATURAL JOIN region
     GROUP BY region.name, year, monthnumber, country.name),
 promedio_movil_3 AS (
-     SELECT year, monthnumber, region_name, country_name, policy_level_mensual, avg(infecciones_mensuales) OVER (PARTITION BY name ORDER BY year, monthnumber ROWS 2 PRECEDING) as avg_movible_3
+     SELECT year, monthnumber, region_name, country_name, policy_level_mensual, avg(infecciones_mensuales) OVER (PARTITION BY country_name ORDER BY year, monthnumber ROWS 2 PRECEDING) as avg_movible_3
      FROM infections_policy_por_mes
 )
 SELECT pm1.region_name, pm1.country_name, pm1.policy_level_mensual, pm1.avg_movible_3, pm2.avg_movible_3, (pm1.avg_movible_3 - pm2.avg_movible_3) as delta
 FROM promedio_movil_3 pm1 LEFT JOIN promedio_movil_3 pm2 ON
     pm1.country_name = pm2.country_name
     and ((pm1.monthnumber -1  = pm2.monthnumber and pm1.year = pm2.year) or
-    (pm1.monthnumber -12  = pm2.monthnumber and pm1.year -1 = pm2.year))
+    (pm1.monthnumber -11  = pm2.monthnumber and pm1.year -1 = pm2.year))
 ORDER BY delta;
 
 
