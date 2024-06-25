@@ -2,6 +2,12 @@ import psycopg2
 from config import load_config
 
 
+# Continents primarily in the Northern Hemisphere
+northern_hemisphere_continents = ["North America", "Europe", "Asia", "Africa"]
+
+# Continents primarily in the Southern Hemisphere
+southern_hemisphere_continents = ["Australia", "Antarctica", "South America", "Oceania"]
+
 def connect(config):
     """ Connect to the PostgreSQL database server """
     try:

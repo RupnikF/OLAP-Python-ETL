@@ -1,10 +1,5 @@
 --SCHEMA FOR COVID DW
 
-CREATE TABLE strategy
-(
-    strategy_key serial PRIMARY KEY,
-    name         text NOT NULL
-);
 
 CREATE TABLE region
 (
@@ -12,10 +7,9 @@ CREATE TABLE region
     name       TEXT NOT NULL
 );
 
-
 CREATE TABLE time
 (
-    time_key    serial PRIMARY KEY,
+    time_key    text PRIMARY KEY, --Date in ISO 'yyyy-mm-dd'
     year        int         NOT NULL,
     monthnumber int         NOT NULL,
     monthname   text        NOT NULL,
@@ -25,12 +19,11 @@ CREATE TABLE time
 
 CREATE TABLE country
 (
-    country_key  serial PRIMARY KEY,
+    country_key varchar(3) PRIMARY KEY, --ISO 3166-1 alpha-3
     name         text NOT NULL,
     population   int  NOT NULL,
     area         int  NOT NULL,
-    region_key   int  NOT NULL REFERENCES region (region_key),
-    strategy_key int  NOT NULL REFERENCES strategy (strategy_key)
+    region_key   int  NOT NULL REFERENCES region (region_key)
 );
 
 
@@ -41,8 +34,9 @@ CREATE TABLE daily_data
     infections   int  NOT NULL,
     vaccinations int  NOT NULL,
     season       text NOT NULL,
-    time_key     int  NOT NULL REFERENCES time (time_key),
-    country_key  int  NOT NULL REFERENCES country (country_key)
+    policy_level int NOT NULL, --Stringency Index from data
+    time_key     text  NOT NULL REFERENCES time (time_key),
+    country_key  varchar(3)  NOT NULL REFERENCES country (country_key)
 );
 
 CREATE TABLE year_data
