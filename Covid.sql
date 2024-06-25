@@ -45,7 +45,7 @@ CREATE TABLE year_data
     year_data_key serial PRIMARY KEY,
     pbi           float      NOT NULL,
     health_budget float,
-    deaths        int        NOT NULL,
+    deaths        int,
     country_key   varchar(3) NOT NULL REFERENCES country (country_key),
     year          int        NOT NULL
 );

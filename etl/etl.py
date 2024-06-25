@@ -58,7 +58,7 @@ def daily_etl(config):
     # connecting to the PostgreSQL server
     with open('owid-covid-data.csv', newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        read_continents = []
+        read_continents = [] #TODO: ver si pasando a mapa es mejor
         read_countries = []
         dates = []
         with psycopg2.connect(**config) as conn:
@@ -131,6 +131,79 @@ def daily_etl(config):
                     conn.commit()
 
 
+insertYearly = """INSERT INTO year_data(pbi, health_budget, deaths, country_key, year)
+             VALUES(%s,%s,%s,%s,%s) RETURNING year_data_key;"""
+
+def year_etl(config):
+
+    with open('gdp-per-capita-maddison.csv', newline='') as gdpcsv:
+        with open('total-healthcare-expenditure-gdp.csv', newline='') as healthcsv:
+            with open('country_codes_with_iso_alpha_3.csv', newline='') as isocsv:
+                with open('Morticd10_part5_rev.csv', newline='') as deathscsv:
+                    gdpreader = csv.DictReader(gdpcsv)
+                    healthreader = csv.DictReader(healthcsv)
+                    isoreader = csv.DictReader(isocsv)
+                    deathsreader = csv.DictReader(deathscsv)
+                    who_iso = {}
+                    iso_countries = {}
+                    for row in isoreader:
+                        who_iso[row['country']] = row['ISO_alpha_3']
+                        iso_countries[row['ISO_alpha_3']] = {}
+                    for row in gdpreader:
+                        if len(row['Code']) > 3 or len(row['Code']) == 0:
+                            continue
+                        if int(row['Year']) < 2019:
+                            continue
+                        if not row['Code'] in iso_countries.keys():
+                            continue
+                        year = row['Year']
+                        iso_countries[row['Code']][year] = {}
+                        iso_countries[row['Code']][year]['gdp'] = float(row['GDP per capita'])
+                    for row in healthreader:
+                        if len(row['Code']) > 3 or len(row['Code']) == 0:
+                            continue
+                        if int(row['Year']) < 2019:
+                            continue
+                        if not row['Code'] in iso_countries.keys():
+                            continue
+                        year = row['Year']
+                        if year not in iso_countries[row['Code']].keys():
+                            continue
+                        iso_countries[row['Code']][year]['health'] = float(row['Current health expenditure (CHE) as percentage of gross domestic product (GDP) (%)'])
+                    for row in deathsreader:
+                        if int(row['Year']) < 2019:
+                            continue
+                        iso_code = who_iso[row['Country']]
+                        year = row['Year']
+                        if year not in iso_countries[iso_code].keys():
+                            continue
+                        if row['Cause'] == '1903':
+                            continue
+
+                        if 'deaths' not in iso_countries[iso_code][year].keys():
+                            iso_countries[iso_code][year]['deaths'] = 0
+                        iso_countries[iso_code][year]['deaths'] += int(row['Deaths1'])
+                    with psycopg2.connect(**config) as conn:
+                        with conn.cursor() as cur:
+                            for iso_country in iso_countries:
+                                if not iso_countries[iso_country]:
+                                    continue
+                                for year in iso_countries[iso_country]:
+                                    gdp = iso_countries[iso_country][year]['gdp']
+                                    health = None
+                                    if 'health' in iso_countries[iso_country][year].keys():
+                                        health = iso_countries[iso_country][year]['health']
+                                    deaths = None
+                                    if 'deaths' in iso_countries[iso_country][year].keys():
+                                        deaths = iso_countries[iso_country][year]['deaths']
+                                    cur.execute(insertYearly, (gdp, health, deaths, iso_country, int(year)))
+                                    conn.commit()
+
+
+
+
+
 if __name__ == '__main__':
     config = load_config()
-    daily_etl(config)
+    #daily_etl(config)
+    year_etl(config)
