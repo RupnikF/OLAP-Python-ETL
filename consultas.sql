@@ -140,7 +140,7 @@ WITH country_stringency AS (
         WHEN avg(policy_level) BETWEEN 41 AND 60 THEN 3
         WHEN avg(policy_level) BETWEEN 61 AND 80 THEN 4
         WHEN avg(policy_level) BETWEEN 81 AND 100 THEN 5
-        ELSE 0 -- In case policy_level is outside the expected range
+        ELSE 0
         END AS policy_group
     FROM daily_data
     GROUP BY country_key)
@@ -162,7 +162,7 @@ WITH country_stringency_month AS (
                WHEN avg(policy_level) BETWEEN 41 AND 60 THEN 3
                WHEN avg(policy_level) BETWEEN 61 AND 80 THEN 4
                WHEN avg(policy_level) BETWEEN 81 AND 100 THEN 5
-               ELSE 0 -- In case policy_level is outside the expected range
+               ELSE 0
                END AS policy_group
     FROM daily_data NATURAL JOIN time
     GROUP BY year, monthnumber, country_key),
