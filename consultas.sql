@@ -8,9 +8,9 @@ WITH year_deaths_covid AS (
     FROM daily_data NATURAL JOIN time
     GROUP BY country_key, year
 )
-SELECT pbi, deaths, covid_deaths
-FROM year_data NATURAL JOIN year_deaths_covid
-ORDER BY  pbi;
+SELECT name, year ,pbi, (covid_deaths*100000/(population::numeric)) as mortality_rate
+FROM year_data NATURAL JOIN year_deaths_covid NATURAL  JOIN country
+ORDER BY pbi DESC;
 
 
 /*
@@ -24,35 +24,39 @@ GROUP BY season;
 /*
 ¿Existe una vinculación entre la edad promedio de una población y la tasa de mortalidad?
 Por cada año y territorio, edad promedio de la población y la tasa de mortalidad
-*/
-WITH Casos_anuales as (
-    SELECT sum(deaths) as muertes_anuales, year
-    FROM daily_data NATURAL JOIN time
-    GROUP BY year)
-SELECT year, name, median_age, muertes_anuales
-FROM Casos_anuales NATURAL JOIN country
-ORDER BY muertes_anuales;
 
+Se puede ver que a medida que aumenta la edad promedio aumenta la mortalidad
+*/
+SELECT name, median_age, sum(deaths) * 100000/(population::numeric) as mortality_rate
+FROM daily_data NATURAL JOIN country
+WHERE median_age is not null
+GROUP BY name, median_age, population
+ORDER BY median_age;
 
 
 /*
 ¿Existe una correlación entre la tasa de mortalidad y la densidad de población?
-Por cada año y territorio, densidad poblacional y la tasa de mortalidad
+Por pais, densidad poblacional y la tasa de mortalidad
 */
-WITH Casos_anuales as (
-    SELECT sum(deaths) as annual_deaths, year
-    FROM daily_data NATURAL JOIN time
-    GROUP BY year)
-SELECT population/area AS density, annual_deaths, year, country.name
-FROM Casos_anuales NATURAL JOIN country NATURAL JOIN year_data
-GROUP BY year, country.name, population, area, annual_deaths;
+SELECT  country.name, population/area AS density, coalesce(sum(deaths)*100000/(population::numeric), 0) as mortality_rate
+FROM daily_data NATURAL JOIN country
+WHERE area is not null
+GROUP BY  country.name, population, area
+ORDER BY density DESC;
 
 /*
- ¿Existe relación entre el presupuesto en sistemas de salud y la tasa de mortalidad? Por cada año y territorio, presupuesto anual para sistema de salud y tasa de mortalidad
+ ¿Existe relación entre el presupuesto en sistemas de salud y la tasa de mortalidad?
+ Por cada año y territorio, presupuesto anual para sistema de salud y tasa de mortalidad
 */
-
-SELECT health_budget, d.deaths, policy_level, year, region.name
-FROM daily_data d NATURAL JOIN country NATURAL JOIN region NATURAL JOIN year_data;
+WITH year_deaths_covid AS (
+    SELECT country_key, year, sum(deaths) as covid_deaths
+    FROM daily_data NATURAL  JOIN  time
+    GROUP BY country_key, year
+)
+SELECT year, name, health_budget, covid_deaths * 100000/(population::numeric) as mortality_rate
+FROM year_deaths_covid NATURAL JOIN country NATURAL JOIN year_data
+WHERE health_budget is not  null
+ORDER BY  health_budget DESC;
 
 /*
 Identificar periodos de aumento de casos por región, acciones realizadas e infecciones después de 3 meses.
@@ -61,29 +65,30 @@ Ranking de aumento de casos e infecciones en base a promedio móvil de x semanas
 SUPONGO: “aumento en casos” : prom movil 3 meses - prom movil 3 meses
 SUPONGO: policiy level de cada mes como el promedio del mes
 */
+
 WITH
 infections_policy_por_mes AS(
     SELECT year, monthnumber, region.name as region_name, country.name as country_name, avg(policy_level) as policy_level_mensual, sum(infections) as infecciones_mensuales
-    FROM time NATURAL JOIN daily_data NATURAL JOIN country NATURAL JOIN region
+    FROM time NATURAL JOIN daily_data NATURAL JOIN country JOIN region on country.region_key = region.region_key
     GROUP BY region.name, year, monthnumber, country.name),
 promedio_movil_3 AS (
      SELECT year, monthnumber, region_name, country_name, policy_level_mensual, avg(infecciones_mensuales) OVER (PARTITION BY country_name ORDER BY year, monthnumber ROWS 2 PRECEDING) as avg_movible_3
      FROM infections_policy_por_mes
 )
-SELECT pm1.region_name, pm1.country_name, pm1.policy_level_mensual, pm1.avg_movible_3, pm2.avg_movible_3, (pm1.avg_movible_3 - pm2.avg_movible_3) as delta
+SELECT pm1.region_name, pm1.country_name, pm1.policy_level_mensual as policy_level, pm1.avg_movible_3 as prom_mobil, pm2.avg_movible_3 as prom_movil_3meses, (pm1.avg_movible_3 - pm2.avg_movible_3) as delta
 FROM promedio_movil_3 pm1 LEFT JOIN promedio_movil_3 pm2 ON
     pm1.country_name = pm2.country_name
     and ((pm1.monthnumber -1  = pm2.monthnumber and pm1.year = pm2.year) or
     (pm1.monthnumber -11  = pm2.monthnumber and pm1.year -1 = pm2.year))
-ORDER BY delta;
+WHERE pm1.policy_level_mensual is not null and pm1.avg_movible_3 is not null and pm2.avg_movible_3 is not null
+ORDER BY policy_level DESC ;
 
 
 /*
 Entre las políticas sanitarias utilizadas ¿Cuáles fueron las más efectivas frente a un aumento en los casos?
-Cantidad de casos ( con lag de 3 meses) promedio agrupando por nivel de política
+Politica sanitaria actual y Cantidad de casos comparado con un lag de 20 dias
 */
-
-WITH stringency_resumida AS (SELECT policy_level, deaths, infections, date, country.name AS country_name,
+WITH stringency_resumida AS (SELECT avg(policy_level) as avg_policy, sum(deaths) AS deaths, sum(infections) AS infections, monthnumber AS month, country.name AS country_name, year,
                                  CASE
                                      WHEN avg(policy_level) BETWEEN 1 AND 20 THEN 1
                                      WHEN avg(policy_level) BETWEEN 21 AND 40 THEN 2
@@ -104,6 +109,8 @@ ORDER BY policy_group desc;
 Entre los países cercanos geográficamente,
 ¿Existe una variación en sus tasas de mortalidad?
 Para las regiones (Sudamérica, América Central, Norteamérica, Europa del Oeste, Europa del Este, etc), mes y año, la tasa de mortalidad promedio.
+
+NOTAMOS QUE EN EUROPA TUVIERON MUCHA DIFERENCIA PERO EN EL RESTO NO
 */
 WITH avg_region as(
     SELECT avg(deaths) as avg_region, region.name as region_name
@@ -120,9 +127,10 @@ ORDER BY delta;
 
 
 /*
-¿Existe una diferencia en la tasa de mortalidad entre países con regímenes obligatorios de vacunación y aquellos con regímenes opcionales?
-Discretizar los tipos de regímenes, ponerle una clasificación
-Para un país, clasificado en vacunación obligatoria y opcional, la tasa de mortalidad anual
+¿Existe una diferencia en la tasa de mortalidad entre países con diferentes regimenes sanitarios?
+Discretizar los tipos de regímenes, ponerle una clasificación. Para los regimenes de 1 a 5 , el promedio de muertes y casos
+
+ESTA ESTA BUENA PARA HACER EL ANALISIS
 */
 WITH country_stringency AS (
     SELECT country_key,
@@ -142,8 +150,9 @@ GROUP BY policy_group;
 
 
 /*
-¿Qué estrategias de vacunación vieron una mejora sustancial (en comparación con otras) después de 3 meses? ¿Y después de 6 meses? ¿Y año?
+¿Qué estrategias de policy tuvieron mejor resultado después de 3 meses? ¿Y después de 6 meses? ¿Y año?
 Mismo que antes ponerle una categorizar cada país
+A 3 y a 6 MESES VEMOS UNA CAIDA DE LOS CASOS -> DESPUE SPONER BIEN
 */
 WITH country_stringency_month AS (
     SELECT country_key, year, monthnumber, sum(infections) as infections,
@@ -158,12 +167,12 @@ WITH country_stringency_month AS (
     FROM daily_data NATURAL JOIN time
     GROUP BY year, monthnumber, country_key),
 compare_infections AS (
-    SELECT country.name, year, monthnumber, infections,
-        LAG(infections,3) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_3,
-        LAG(infections,6) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_6,
-        LAG(infections,12) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_12
+    SELECT country.name, year, policy_group, monthnumber, infections,
+        LEAD(infections,3) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_3,
+        LEAD(infections,6) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_6,
+        LEAD(infections,12) OVER (PARTITION BY country.name ORDER BY year, monthnumber) as month_12
     FROM country_stringency_month NATURAL JOIN country)
-SELECT name, year, monthnumber, infections, (infections - month_3) as delta_3, (infections - month_6) as delta_6, (infections - month_12) as delta_12
+SELECT policy_group,  sum(infections), sum((infections - month_3)) as delta_3, sum(infections - month_6) as delta_6, sum(infections - month_12) as delta_12
 FROM compare_infections
 GROUP BY policy_group
 ORDER BY policy_group;
@@ -171,42 +180,70 @@ ORDER BY policy_group;
 
 
 /*
-¿Un aumento en el sistema de salud mejora las tasas de mortalidad e infección? Por año y territorio,
-la tasa de mortalidad e infección per cápita y la diferencia de presupuesto en el sistema de salud(% del PBI) con el año anterior
+¿Un aumento en el sistema de salud mejora las tasas de mortalidad e infección?
+Por año y territorio, la tasa de mortalidad e infección per cápita y la diferencia de presupuesto en el sistema de salud(% del PBI) con el año anterior
 */
-
-SELECT deaths, health_budget, country.name as country_name, LAG(deaths,1) OVER (PARTITION BY country.name ORDER BY year) as prev_year_deaths, year
-FROM year_data NATURAL JOIN country
-ORDER BY country, year;
+WITH year_deaths AS (
+    SELECT year, country_key, sum(deaths) as deaths_year
+    FROM daily_data NATURAL  JOIN time
+    GROUP BY year, country_key
+),
+compare_years AS (
+    SELECT d.year, d.country_key, deaths_year, LAG(deaths_year, 1) over (PARTITION BY d.country_key ORDER BY d.year) as deaths_year_prev, health_budget, LAG(health_budget, 1) over (PARTITION BY y.country_key ORDER BY y.year) as prev_health_budget
+   FROM year_deaths d join year_data y on d.country_key = y.country_key and d.year= y.year
+   WHERE health_budget is not null
+)
+SELECT year, country_key, (health_budget - prev_health_budget) as delta_budget, (deaths_year - deaths_year_prev) as delta_deaths
+FROM compare_years
+WHERE prev_health_budget is not  null and deaths_year_prev is not  null
+ORDER BY delta_budget DESC ;
 
 
 /*
-¿Qué meses fueron los peores en tasa de mortalidad por región? Por mes del año y región, la tasa de mortalidad mensual
+¿Qué meses fueron los mejores en tasa de mortalidad por región?
+Por mes del año y región, la tasa de mortalidad mensual
+
+HACER ESTE ANALISIS DE QUE LOS MEJORES SON AL AL INICIO Y AL FINAL
 */
-WITH monthly_deaths AS (SELECT sum(deaths) as monthly_deaths_by_country, region, country.name, monthnumber, year
-                        FROM daily_data natural join time natural join country natural join region
-                        GROUP BY monthnumber, country.name, year),
-    almost_there AS (SELECT AVG(monthly_deaths_by_country) as deaths, region, monthnumber as month, year
-                     FROM monthly_deaths
-                     GROUP BY region,monthnumber, year
-                     ORDER BY deaths)
-SELECT *, rank() OVER (PARTITION BY region ORDER BY deaths)
-FROM almost_there;
+WITH monthly_deaths_region AS (
+    SELECT sum(deaths) as monthly_deaths_by_region, region.name as region_name, monthnumber, year
+    FROM daily_data natural join time natural join country join region on country.region_key = region.region_key
+    GROUP BY monthnumber, year, region.name),
+total_ranking AS (
+    SELECT region_name,  rank() OVER (PARTITION BY region_name ORDER BY monthly_deaths_by_region) as rank, monthly_deaths_by_region, year, monthnumber
+    FROM monthly_deaths_region
+    ORDER BY region_name,rank
+)
+SELECT  *
+FROM total_ranking
+WHERE rank <= 5;
+
 
 
 /*
-¿Frente a qué temperaturas se registró un aumento en los casos?
-*/
+¿Qué meses fueron los peores en tasa de mortalidad por región?
+Por mes del año y región, la tasa de mortalidad mensual
 
-SELECT season, sum(infections) as total_casos, country.name
-FROM daily_data NATURAL JOIN country
-GROUP BY season, country.name
-ORDER BY country.name, total_casos;
+EN CAMBIO LOS PEORES MESES SON EN EL MEDIO DE LA PANDEMIA
+*/
+WITH monthly_deaths_region AS (
+    SELECT sum(deaths) as monthly_deaths_by_region, region.name as region_name, monthnumber, year
+    FROM daily_data natural join time natural join country join region on country.region_key = region.region_key
+    GROUP BY monthnumber, year, region.name),
+     total_ranking AS (
+         SELECT region_name,  rank() OVER (PARTITION BY region_name ORDER BY monthly_deaths_by_region DESC) as rank, monthly_deaths_by_region, year, monthnumber
+         FROM monthly_deaths_region
+         ORDER BY region_name,rank
+     )
+SELECT  *
+FROM total_ranking
+WHERE rank <= 5;
+
 
 
 /*
 ¿Existe un aumento de casos para fechas festivas?
-SUPONGO LAG DE 20 días EXCELENTE
+SUPONGO LAG DE 20 días
 */
 WITH day_sum as(
     SELECT sum(infections) as infections, time_key,date
