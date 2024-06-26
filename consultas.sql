@@ -1,6 +1,6 @@
 
 /*
- ¿Existe correlación entre el PBI per cápita de un país y su tasa de mortalidad?
+ ¿Existe correlación entre el PBI per cápita de un país y su tasa de mortalidad por Covid?
  Por año y territorio, el PBI per cápita y la tasa de mortalidad
  */
 WITH year_deaths_covid AS (
@@ -17,7 +17,7 @@ ORDER BY  pbi;
 Determinar si existe un cambio de mortalidad frente a diferentes estaciones.
 Para cada estación la tasa de mortalidad
 */
-SELECT avg(deaths),avg(infections),season
+SELECT avg(deaths) as avg_deaths,avg(infections) as avg_infections,season
 FROM daily_data
 GROUP BY season;
 
@@ -85,16 +85,19 @@ Cantidad de casos ( con lag de 3 meses) promedio agrupando por nivel de polític
 
 WITH stringency_resumida AS (SELECT policy_level, deaths, infections, date, country.name AS country_name,
                                  CASE
-                                     WHEN policy_level BETWEEN 1 AND 20 THEN 1
-                                     WHEN policy_level BETWEEN 21 AND 40 THEN 2
-                                     WHEN policy_level BETWEEN 41 AND 60 THEN 3
-                                     WHEN policy_level BETWEEN 61 AND 80 THEN 4
-                                     WHEN policy_level BETWEEN 81 AND 100 THEN 5
-                                     ELSE 0 -- In case policy_level is outside the expected range
+                                     WHEN avg(policy_level) BETWEEN 1 AND 20 THEN 1
+                                     WHEN avg(policy_level) BETWEEN 21 AND 40 THEN 2
+                                     WHEN avg(policy_level) BETWEEN 41 AND 60 THEN 3
+                                     WHEN avg(policy_level) BETWEEN 61 AND 80 THEN 4
+                                     WHEN avg(policy_level) BETWEEN 81 AND 100 THEN 5
+                                     ELSE 0
                                      END AS policy_group
-                             FROM daily_data NATURAL JOIN time NATURAL JOIN country)
-SELECT date, country_name, policy_level, deaths, LAG(deaths, 3) OVER (PARTITION BY policy_level ORDER BY date) AS change_in_deaths, infections, LAG(infections, 3) OVER (PARTITION BY policy_level ORDER BY date) AS change_in_infections
-FROM stringency_resumida;
+                             FROM daily_data NATURAL JOIN time NATURAL JOIN country
+                             GROUP BY year, monthnumber, country_name)
+SELECT year, month, country_name, policy_group, LAG(policy_group, 3) OVER (PARTITION BY country_name ORDER BY year, month) as previous_policy, deaths, LAG(deaths, 3) OVER (PARTITION BY country_name ORDER BY year, month) AS change_in_deaths, infections, LAG(infections, 3) OVER (PARTITION BY country_name ORDER BY year, month ) AS change_in_infections
+FROM stringency_resumida
+WHERE  policy_group <> 0
+ORDER BY policy_group desc;
 
 
 /*
@@ -104,13 +107,17 @@ Para las regiones (Sudamérica, América Central, Norteamérica, Europa del Oest
 */
 WITH avg_region as(
     SELECT avg(deaths) as avg_region, region.name as region_name
-    FROM daily_data NATURAL JOIN country NATURAL JOIN region
-    GROUP BY region.name
-)
-SELECT region_name, avg(deaths - avg_region) as delta
-FROM avg_region NATURAL JOIN daily_data NATURAL JOIN country
-GROUP BY region_name
+    FROM daily_data NATURAL JOIN country JOIN region on country.region_key = region.region_key
+    GROUP BY region.name),
+avg_country as(
+    SELECT avg(deaths) as avg_country,country_key as country ,region.name as region_name
+    FROM daily_data NATURAL JOIN country JOIN region on country.region_key = region.region_key
+    GROUP BY country_key,region_name)
+SELECT r.region_name, avg(r.avg_region - c.avg_country) as delta
+FROM avg_region r JOIN avg_country c  ON r.region_name = c.region_name
+GROUP BY r.region_name
 ORDER BY delta;
+
 
 /*
 ¿Existe una diferencia en la tasa de mortalidad entre países con regímenes obligatorios de vacunación y aquellos con regímenes opcionales?
@@ -158,7 +165,8 @@ compare_infections AS (
     FROM country_stringency_month NATURAL JOIN country)
 SELECT name, year, monthnumber, infections, (infections - month_3) as delta_3, (infections - month_6) as delta_6, (infections - month_12) as delta_12
 FROM compare_infections
-ORDER BY delta_3;
+GROUP BY policy_group
+ORDER BY policy_group;
 
 
 
@@ -200,16 +208,40 @@ ORDER BY country.name, total_casos;
 ¿Existe un aumento de casos para fechas festivas?
 SUPONGO LAG DE 20 días EXCELENTE
 */
-WITH prev_15_data AS(
-    SELECT time_key, infections, lag(infections, 20) OVER (PARTITION BY country_key ORDER BY year, monthnumber, day) as post_20
-    FROM daily_data NATURAL JOIN time
+WITH day_sum as(
+    SELECT sum(infections) as infections, time_key,date
+    FROM daily_data natural join time
+    GROUP BY time_key,date
+),
+prev_20_data AS(
+    SELECT date,infections, sum(infections) OVER (ORDER BY date ROWS BETWEEN CURRENT ROW AND 20 FOLLOWING) as post_20,
+           sum(infections) OVER (ORDER BY date ROWS BETWEEN 20 PRECEDING AND CURRENT ROW) as pre_20
+    FROM day_sum
 )
-SELECT time_key, infections, post_20, (infections - post_20) AS delta_20
-FROM prev_15_data
-WHERE (TO_CHAR(time_key, 'MM-DD') = '12-25' -- navidad
-    OR TO_CHAR(time_key, 'MM-DD') = '01-01' -- año nuevo
-    OR TO_CHAR(time_key, 'MM-DD') = '25-05' -- 25 de mayo
-    OR TO_CHAR(time_key, 'MM-DD') = '01-05') -- Día del trabajado
+SELECT date,post_20,pre_20, (post_20 - pre_20) as delta_20
+FROM prev_20_data
+WHERE post_20 is not null and infections is not null and
+ (to_char(date, 'MM-DD') = '12-25' -- navidad
+    OR TO_CHAR(date, 'MM-DD') = '01-01' -- año nuevo
+);
 
-
-
+/*
+ Que politica restrictiva se uso mas?
+conteo de la canitdad de paises que usaron en promedio un regimen
+ */
+WITH stringency_country AS (
+    SELECT country_key,
+           CASE
+               WHEN avg(policy_level) BETWEEN 1 AND 20 THEN 1
+               WHEN avg(policy_level) BETWEEN 21 AND 40 THEN 2
+               WHEN avg(policy_level) BETWEEN 41 AND 60 THEN 3
+               WHEN avg(policy_level) BETWEEN 61 AND 80 THEN 4
+               WHEN avg(policy_level) BETWEEN 81 AND 100 THEN 5
+               ELSE 0
+               END AS policy_group
+    FROM daily_data
+    GROUP BY country_key)
+SELECT policy_group, count(country_key)
+FROM stringency_country
+GROUP BY policy_group
+ORDER BY policy_group;
