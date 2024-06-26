@@ -1,0 +1,218 @@
+country,name,ISO_alpha_3
+1010,Algeria,DZA
+1020,Angola,AGO
+1025,Benin,BEN
+1030,Botswana,BWA
+1035,Burkina Faso,BFA
+1040,Burundi,BDI
+1045,Cameroon,CMR
+1060,Cape Verde,CPV
+1070,Central African Republic,CAF
+1080,Chad,TCD
+1090,Comoros,COM
+1100,Congo,COG
+1115,Cote d'Ivoire,CIV
+1120,Djibouti,DJI
+1125,Egypt,EGY
+1130,Equatorial Guinea,GNQ
+1135,Eritrea,ERI
+1140,Ethiopia,ETH
+1160,Gabon,GAB
+1170,Gambia,GMB
+1180,Ghana,GHA
+1190,Guinea,GIN
+1192,Guinea-Bissau,GNB
+1220,Kenya,KEN
+1230,Lesotho,LSO
+1240,Liberia,LBR
+1250,Libyan Arab Jamahiriya,LBY
+1260,Madagascar,MDG
+1270,Malawi,MWI
+1280,Mali,MLI
+1290,Mauritania,MRT
+1300,Mauritius,MUS
+1303,Mayotte,MYT
+1310,Morocco,MAR
+1320,Mozambique,MOZ
+1325,Namibia,NAM
+1330,Niger,NER
+1340,Nigeria,NGA
+1360,Reunion,REU
+1370,Rwanda,RWA
+1385,Sao Tome and Principe,STP
+1390,Senegal,SEN
+1400,Seychelles,SYC
+1410,Sierra Leone,SLE
+1420,Somalia,SOM
+1430,South Africa,ZAF
+1460,South Sudan,SSD
+1465,Sudan,SDN
+1480,Eswatini,SWZ
+1510,Togo,TGO
+1520,Tunisia,TUN
+1530,Uganda,UGA
+1546,United Republic of Tanzania,TZA
+1555,Democratic Republic of the Congo,COD
+1560,Zambia,ZMB
+1570,Zimbabwe,ZWE
+2005,Anguilla,AIA
+2010,Antigua and Barbuda,ATG
+2020,Argentina,ARG
+2025,Aruba,ABW
+2030,Bahamas,BHS
+2040,Barbados,BRB
+2045,Belize,BLZ
+2050,Bermuda,BMU
+2060,Bolivia,BOL
+2070,Brazil,BRA
+2085,British Virgin Islands,VGB
+2090,Canada,CAN
+2110,Cayman Islands,CYM
+2120,Chile,CHL
+2130,Colombia,COL
+2140,Costa Rica,CRI
+2150,Cuba,CUB
+2160,Dominica,DMA
+2170,Dominican Republic,DOM
+2180,Ecuador,ECU
+2190,El Salvador,SLV
+2200,Falkland Islands (Malvinas),FLK
+2210,French Guiana,GUF
+2230,Grenada,GRD
+2240,Guadeloupe,GLP
+2250,Guatemala,GTM
+2260,Guyana,GUY
+2270,Haiti,HTI
+2280,Honduras,HND
+2290,Jamaica,JAM
+2300,Martinique,MTQ
+2310,Mexico,MEX
+2320,Montserrat,MSR
+2330,Netherlands Antilles,ANT
+2340,Nicaragua,NIC
+2350,Panama,PAN
+2360,Paraguay,PRY
+2370,Peru,PER
+2380,Puerto Rico,PRI
+2385,Saint Kitts and Nevis,KNA
+2400,Saint Lucia,LCA
+2410,Saint Pierre and Miquelon,SPM
+2420,Saint Vincent and Grenadines,VCT
+2430,Suriname,SUR
+2440,Trinidad and Tobago,TTO
+2445,Turks and Caicos Islands,TCA
+2450,United States of America,USA
+2455,Virgin Islands (USA),VIR
+2460,Uruguay,URY
+2470,Venezuela,VEN
+3010,Afghanistan,AFG
+3020,Bahrain,BHR
+3025,Bangladesh,BGD
+3027,Bhutan,BTN
+3030,Brunei Darussalam,BRN
+3050,Cambodia,KHM
+3068,China,CHN
+3070,China: Province of Taiwan only,TWN
+3080,Cyprus,CYP
+3083,Democratic Peoples's Republic of Korea,PRK
+3090,Hong Kong SAR,HKG
+3100,India,IND
+3110,Indonesia,IDN
+3130,Iran,IRN
+3140,Iraq,IRQ
+3150,Israel,ISR
+3160,Japan,JPN
+3170,Jordan,JOR
+3190,Kuwait,KWT
+3200,Lao People's Democratic Republic,LAO
+3210,Lebanon,LBN
+3220,Macau,MAC
+3236,Malaysia,MYS
+3255,Maldives,MDV
+3260,Mongolia,MNG
+3270,Myanmar,MMR
+3280,Nepal,NPL
+3283,Palestine,PSE
+3285,Oman,OMN
+3290,Pakistan,PAK
+3300,Philippines,PHL
+3320,Qatar,QAT
+3325,Republic of Korea,KOR
+3340,Saudi Arabia,SAU
+3350,Singapore,SGP
+3365,Sri Lanka,LKA
+3370,Syrian Arab Republic,SYR
+3380,Thailand,THA
+3400,Turkey,TUR
+3405,United Arab Emirates,ARE
+3408,Viet Nam,VNM
+3420,Yemen,YEM
+4005,Albania,ALB
+4007,Armenia,ARM
+4008,Andorra,AND
+4010,Austria,AUT
+4012,Azerbaijan,AZE
+4018,Belarus,BLR
+4020,Belgium,BEL
+4025,Bosnia and Herzegovina,BIH
+4030,Bulgaria,BGR
+4038,Croatia,HRV
+4045,Czech Republic,CZE
+4050,Denmark,DNK
+4055,Estonia,EST
+4070,Finland,FIN
+4080,France,FRA
+4084,Georgia,GEO
+4085,Germany,DEU
+4140,Greece,GRC
+4150,Hungary,HUN
+4160,Iceland,ISL
+4170,Ireland,IRL
+4180,Italy,ITA
+4182,Kazakhstan,KAZ
+4184,Kyrgyzstan,KGZ
+4186,Latvia,LVA
+4188,Lithuania,LTU
+4190,Luxembourg,LUX
+4195,North Macedonia,MKD
+4200,Malta,MLT
+4205,Monaco,MCO
+4207,Montenegro,MNE
+4210,Netherlands,NLD
+4220,Norway,NOR
+4230,Poland,POL
+4240,Portugal,PRT
+4260,Republic of Moldova,MDA
+4270,Romania,ROU
+4272,Russian Federation,RUS
+4273,Serbia,SRB
+4274,Slovakia,SVK
+4275,San Marino,SMR
+4276,Slovenia,SVN
+4280,Spain,ESP
+4290,Sweden,SWE
+4300,Switzerland,CHE
+4301,Tajikistan,TJK
+4302,Turkmenistan,TKM
+4303,Ukraine,UKR
+4308,United Kingdom,GBR
+4310,United Kingdom,GBR
+4320,United Kingdom,GBR
+4330,United Kingdom,GBR
+4335,Uzbekistan,UZB
+5020,Australia,AUS
+5060,Cook Islands,COK
+5070,Fiji,FJI
+5105,Kiribati,KIR
+5107,Marshall Islands,MHL
+5108,Micronesia,FSM
+5110,Nauru,NRU
+5150,New Zealand,NZL
+5170,Niue,NIU
+5180,Palau,PLW
+5195,Papua New Guinea,PNG
+5197,Samoa,WSM
+5198,Solomon Islands,SLB
+5200,Tonga,TON
+5205,Tuvalu,TUV
+5207,Vanuatu,VUT
