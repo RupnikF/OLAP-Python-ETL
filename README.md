@@ -1,5 +1,8 @@
-# OLAP-Python-ETL
+# covid - OLAP
 
+Base de datos OLAP con cantidad de casos, muertes, infecciones y vacunas de covid19 desde 2019 hasta 2024.
+
+## Instrucciones
 Crear base de datos covid, correr el covid.sql para crear las tablas
 
 Hacer el setup del environment de python
